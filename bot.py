@@ -4,7 +4,10 @@ from aiogram import Bot,Dispatcher,types, executor
 from filters import IsAdminFilter
 from db import Database
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
+
+
+
 
 bot = Bot(token=config.TOKEN)
 kd = Dispatcher(bot)
@@ -42,7 +45,7 @@ kd.filters_factory.bind(IsAdminFilter)
         
 @kd.message_handler()
 async def filter_messages(message: types.Message):    
-    print(f'Entry filter_messages: {message.from_id=} { message.text=}')
+    logging.info(f'Entry filter_messages: {message.from_id=} { message.text=}')
     if "Проверка" in message.text:
         await message.delete()
     x = db.user_exists(message.from_user.id)
