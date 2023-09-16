@@ -1,6 +1,5 @@
-import config
+﻿import config
 import logging
-import asyncio
 from aiogram import Bot,Dispatcher,types, executor
 from filters import IsAdminFilter
 from db import Database
@@ -21,7 +20,7 @@ async def cmd_mute(message: types.Message):
     mute_min = int(message.text[6:])
     db.add_mute(message.reply_to_message.from_user.id, mute_min)
     await message.bot.delete_message(config.GROUP_ID, message.message_id)
-    await message.reply_to_message.reply(f"Пользователь был замучен на {mute_min} минут! \nПомолчи пж :)")
+    await message.reply_to_message.reply(f"Пользователь был замучен на {mute_min} секунд! \nПомолчи пж :)")
     
 @kd.message_handler(is_admin=True, commands = ["ban"], commands_prefix = '!/')
 async def cmd_ban(message: types.Message):
@@ -36,20 +35,17 @@ async def cmd_ban(message: types.Message):
 async def start_command(message: types.Message):
     await message.reply("Привет! \nСкоро тут будет инфа :)")
     
+        
 @kd.message_handler()
 async def filter_messages(message: types.Message):    
     if "Проверка" in message.text:
         await message.delete()
-
-@kd.message_handler()
-async def mess_handler(message: types.Message):
     if not db.user_exists(message.from_user.id):
         db.add_user(message.from_user.id)
     if not db.mute(message.from_user.id):
-        print("g")
+        print("/")
     else:
         await message.delete()
-
 
 if __name__ == "__main__":
     executor.start_polling(kd, skip_updates=True)
