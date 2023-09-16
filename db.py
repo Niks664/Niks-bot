@@ -8,11 +8,11 @@ class Database:
         
     def user_exists(self, user_id):
         with self.connection:
-            result = self.cursor.execute("select * from 'users' where 'user_id' =?", (user_id,)).fetchall()
+            result = self.cursor.execute("select * from users where user_id =?", (user_id,)).fetchall()            
             return bool(len(result))
             
     def add_user(self, user_id):
-        with self.connection:
+        with self.connection:            
             return self.connection.execute("INSERT INTO 'users' ('user_id') VALUES (?)", (user_id,))
         
     def mute(self, user_id):
