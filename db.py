@@ -8,19 +8,53 @@ class Database:
         
     def user_exists(self, user_id):
         with self.connection:
-            result = self.cursor.execute("select * from users where user_id =?", (user_id,)).fetchall()            
+            result = self.cursor.execute("select * from users where user_id =?", (user_id,)).fetchall()
             return bool(len(result))
             
     def add_user(self, user_id):
-        with self.connection:            
-            return self.connection.execute("INSERT INTO 'users' ('user_id') VALUES (?)", (user_id,))
+        with self.connection:
+            return self.connection.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
         
     def mute(self, user_id):
         with self.connection:
-            user = self.connection.execute("SELECT * FROM 'users' WHERE 'user_id' = ?", (user_id,)).fetchone()
+            user = self.connection.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
             return int(user[2]) >= int(time.time()) 
     
     def add_mute(self, user_id, mute_time):
         with self.connection:
-            return self.connection.execute("UPDATE 'users' SET 'mute_time' = ? WHERE 'user_id' = ?", (int(time.time()) + mute_time, user_id))
+            return self.connection.execute("UPDATE users SET mute_time = ? WHERE user_id = ?", (int(time.time()) + (mute_time * 60), user_id))
+    
+    def un_mute(self, user_id):
+        with self.connection:
+            return self.connection.execute("UPDATE users SET mute_time = 0 WHERE user_id =?", (user_id,))
+
+    def get_balance(self, user_id):
+        with self.connection:
+            balance = self.connection.execute("SELECT balance FROM users WHERE user_id =?", (user_id,)).fetchone()[0]
+            return balance
         
+    def update_balance(self, user_id, new_balance):
+        with self.connection:
+            return self.connection.execute("UPDATE users SET balance =? WHERE user_id =?", (new_balance, user_id))
+    
+    def add_balance(self, user_id, amount):
+        with self.connection:
+            return self.connection.execute("UPDATE users SET balance = balance +? WHERE user_id =?", (amount, user_id))
+    
+    def remove_balance(self, user_id, amount):
+        with self.connection:
+            return self.connection.execute("UPDATE users SET balance = balance -? WHERE user_id =?", (amount, user_id))
+    
+    def set_nick(self, user_id):
+        with self.connection:
+            username = self.connection.execute("SELECT username FROM users WHERE user_id =?", (user_id,)).fetchone()
+            return username
+        
+    def update_username(self, user_id, new_username):
+        with self.connection:
+            return self.connection.execute("UPDATE users SET username =? WHERE user_id =?", (new_username, user_id))
+    
+    def get_leaderboard(self):
+        with self.connection:
+            result = self.cursor.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10").fetchall()
+            return result
