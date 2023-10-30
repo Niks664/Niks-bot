@@ -3,6 +3,8 @@ import logging
 from aiogram import Bot,Dispatcher,types, executor
 from filters import IsAdminFilter
 from db import Database
+import keyboard
+from asyncio import sleep
 
 logging.basicConfig(level=logging.INFO)
 
@@ -12,6 +14,27 @@ db = Database('database.db')
 
 kd.filters_factory.bind(IsAdminFilter)
 
+@kd.message_handler(commands= ["games"], commands_prefix="!/")
+async def game(message: types.Message):
+    await message.reply(text= f'@{message.from_user.username} Во что хочешь поиграть?',
+                        reply_markup = keyboard.main_kb)
+    
+@kd.message_handler(text = "dice")
+async def dice(message: types.Message):
+    ab = await message.bot.send_dice(chat_id = config.GROUP_ID) 
+    dice = ab['dice']["value"]
+    await sleep(4)
+    print(dice)
+    if dice > 3:
+        await message.reply (f"Поздравляю @{message.from_user.username} ты победил! И получил 100 $.")
+        balanceadd = 100
+        db.add_balance(message.from_user.id, balanceadd)
+        balances = db.get_balance(message.from_user.id)
+        await message.reply(f"Баланс @{message.from_user.username} успешно пополнен на {balanceadd} $\nБаланс пользователя: {balances} $ ")
+    else:
+        await sleep(4)
+        await message.reply (f" @{message.from_user.username} Увы, но ты неудачник! :(")
+    
 @kd.message_handler(is_admin=True, commands = ["mute"], commands_prefix = '!/')
 async def cmd_mute(message: types.Message):
     logging.info(f'Entry cmd_mute: {message.from_id=} { message.text=}')
@@ -56,7 +79,7 @@ async def cmd_addbalance(message: types.Message):
     balanceadd = int(message.text[11:])
     db.add_balance(message.reply_to_message.from_user.id, balanceadd)
     balances = db.get_balance(message.reply_to_message.from_user.id)
-    await message.reply_to_message.reply(f"Баланс пользователя успешно пополнен на {balanceadd} $\nБаланс пользователя: {balances} $ ")
+    await message.reply_to_message.reply(f"Баланс @{message.reply_to_message.from_user.username} успешно пополнен на {balanceadd} $\nБаланс пользователя: {balances} $ ")
     
 @kd.message_handler(is_admin=True,commands = ['removebalance'], commands_prefix = '!/')
 async def cmd_removebalance(message: types.Message):
@@ -67,38 +90,69 @@ async def cmd_removebalance(message: types.Message):
     db.remove_balance(message.reply_to_message.from_user.id, balancremove)
     balances = db.get_balance(message.reply_to_message.from_user.id)
     await message.reply_to_message.reply(f"Баланс пользователя успешно удален на {balancremove} $\nБаланс пользователя: {balances} $ ")
-    
-@kd.message_handler(commands= ["setnick"], commands_prefix = '!/')
-async def cmd_setnick(message: types.Message):
-    if not message.reply_to_message:
-        await message.reply ("Эта команда должна быть ответом на сообщение!")
-        return
-    nick = message.text[9:]
-    db.set_nick(message.reply_to_message.from_user.username)
-    await message.reply_to_message.reply(f"Ник пользователя успешно изменен на {nick} \nНик пользователя: {db.set_nick(message.reply_to_message.from_user.id)}")
 
-
-@kd.message_handler(commands = ["leaders"], commands_prefix = '!/')
-async def cmd_leaders(message: types.Message):
-    leaders = db.get_leaderboard()
-    await message.reply(f"Лидеры: {leaders}")
+# @kd.message_handler(commands = ["leaders"], commands_prefix = '!/')
+# async def cmd_leaders(message: types.Message):
+#     leaders = db.get_leaderboard()
+#     await message.reply(f"Лидеры: {leaders}")
 
 @kd.message_handler(commands = ['help'], commands_prefix = '!/')
 async def start_command(message: types.Message):
-    await message.reply("Помощь по коммандам:\n \nКоманды для модерации:\n\n!mute - Замутить человека на определенное время, используется ответом на сообщение.\n\n!unmute - Снять мут с пользователя, используется ответом на сообщение.\n\n!ban - Забанить пользователя на всегда, используется ответом на сообщение.\n\n!addbalance - Пополнить баланс пользователю, используется ответом на сообщение.\n\n!removebalance - Испольльзуется чтобы понизить баланс пользователю, используется ответом на сообщение.\n\nКоманды для пользователей:\n\n!balance - Узнать свой баланс. ")
+    user_username = message.from_user.username
+    await message.reply(f"@{user_username} Помощь по коммандам:\n \nКоманды для модерации:\n\n!mute - Замутить человека на определенное время, используется ответом на сообщение.\n\n!unmute - Снять мут с пользователя, используется ответом на сообщение.\n\n!ban - Забанить пользователя на всегда, используется ответом на сообщение.\n\n!addbalance - Пополнить баланс пользователю, используется ответом на сообщение.\n\n!removebalance - Испольльзуется чтобы понизить баланс пользователю, используется ответом на сообщение.\n\nКоманды для пользователей:\n\n!balance - Узнать свой баланс. ")
 
+@kd.message_handler(commands = "stats", commands_prefix = "!/")
+async def start(message: types.Message):
+    balances = db.get_balance(message.from_user.id)
+    member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
+    # print(member)
+    status = member['status']
+    # print(status)
+    status_player = 'Пользователь'
+    status_admin = 'Администратор'
+    if status == 'member':
+        await message.reply(f'Username: @{message.from_user.username}\nUserid: {message.from_user.id}\nБаланс: {balances}\nСтатус: {status_player}')
+    else:
+        await message.reply(f'Username: @{message.from_user.username}\nUserid: {message.from_user.id}\nБаланс: {balances}\nСтатус: {status_admin}')
+
+# @kd.message_handler(commands="hello", commands_prefix="!/")
+# async def send_hello(message: types.Message):
+#     your_id = message.from_id
+#     your_name = message.from_user.username
+#     try:
+#         friend_name = message.reply_to_message.from_user.username
+#         friend_id = message.reply_to_message.from_user.id
+#         # await message.delete()
+#         await message.answer(f'[{your_name}](tg://user?id={str(your_id)}) пожал руку [{friend_name}](tg://user?id={str(friend_id)})', parse_mode="Markdown")
+#     except:
+#         # await message.delete()
+#         await message.answer(f'[{your_name}](tg://user?id={str(your_id)}) жмет руку всем', parse_mode="Markdown")
+
+
+
+
+
+@kd.message_handler()
+async def process_message(message: types.Message):
+    if not db.user_exists(message.from_user.id):
+        db.add_user(message.from_user.id)
+    db.add_usernames(message.from_user.username, message.from_user.id)
+    # if not db.mute(message.from_user.id):
+    #     print("/")
+    # else:
+    #     await message.delete()
+        
       
 @kd.message_handler()
 async def filter_messages(message: types.Message):
     logging.info(f'Entry filter_messages: {message.from_id=} { message.text=}')
     if "Проверка" in message.text:
         await message.delete()
-    if not db.user_exists(message.from_user.id):
-        db.add_user(message.from_user.id)
-    if not db.mute(message.from_user.id):
-        print("/")
-    else:
-        await message.delete()
+    # if not db.mute(message.from_user.id):
+    #     print("/")
+    # else:
+    #     await message.delete()
+
 
 if __name__ == "__main__":
     print("Starting...", end='')

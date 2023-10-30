@@ -15,6 +15,14 @@ class Database:
         with self.connection:
             return self.connection.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
         
+    # def usernames(self,username):
+    #     with self.connection:
+    #         return self.connection.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        
+    def add_usernames(self,username: str, user_id:int):
+        with self.connection:           
+            return self.connection.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))   
+        
     def mute(self, user_id):
         with self.connection:
             user = self.connection.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
@@ -45,16 +53,3 @@ class Database:
         with self.connection:
             return self.connection.execute("UPDATE users SET balance = balance -? WHERE user_id =?", (amount, user_id))
     
-    def set_nick(self, user_id):
-        with self.connection:
-            username = self.connection.execute("SELECT username FROM users WHERE user_id =?", (user_id,)).fetchone()
-            return username
-        
-    def update_username(self, user_id, new_username):
-        with self.connection:
-            return self.connection.execute("UPDATE users SET username =? WHERE user_id =?", (new_username, user_id))
-    
-    def get_leaderboard(self):
-        with self.connection:
-            result = self.cursor.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10").fetchall()
-            return result
